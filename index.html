@@ -3,818 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <!-- 放宽CSP以允许Phantom钱包连接 -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline'; connect-src https://* wss://* http://localhost:*; img-src 'self' data:;">
     <title>官方游戏平台</title>
-    <!-- 加载Solana Web3.js -->
-    <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.iife.min.js"></script>
+    <!-- 移除CSP限制以确保钱包能正常连接 -->
+    
     <style>
-        :root {
-            --primary-color: #4CAF50;
-            --primary-hover: #45a049;
-            --accent-color: #9945FF;
-            --danger-color: #f44336;
-            --warning-color: #ff9800;
-            --banner-bg: #d32f2f;
-            --banner-text: #ffeb3b;
-            --text-light: #ffffff;
-            --text-dark: #333333;
-            --bg-light: #f5f5f5;
-            --overlay-bg: rgba(0, 0, 0, 0.85);
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        html, body {
-            height: 100%;
+        /* 基本样式 */
+        body {
             font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
-            background-color: var(--bg-light);
-            color: var(--text-dark);
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #333;
             overflow-x: hidden;
         }
         
-        /* 横幅样式 */
-        .banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: var(--banner-bg);
-            color: var(--banner-text);
-            font-weight: bold;
-            padding: 10px 20px;
-            text-align: center;
-            z-index: 9999;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            font-size: 0.9rem;
-            transition: transform 0.3s;
-        }
-        
-        .banner-toggle {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: transparent;
-            border: none;
-            color: var(--banner-text);
-            font-size: 1.2rem;
-            cursor: pointer;
-            z-index: 10000;
-        }
-        
-        .banner-collapsed {
-            transform: translateY(-100%);
-        }
-        
-        .banner-info {
-            margin: 5px 0;
-        }
-        
-        .banner-wallet {
-            font-family: monospace;
-            background: rgba(255,255,255,0.2);
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 5px;
-        }
-        
-        .copy-btn {
-            background: rgba(255,255,255,0.3);
-            border: none;
-            border-radius: 4px;
-            color: var(--banner-text);
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-left: 5px;
-            padding: 2px 6px;
-        }
-        
-        /* 支付相关样式 */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--overlay-bg);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .payment-box {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 90%;
-            width: 450px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-        
-        .payment-title {
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-            color: var(--text-dark);
-        }
-        
-        .payment-info {
-            margin-bottom: 1.5rem;
-            color: var(--text-dark);
-            font-size: 1rem;
-            line-height: 1.6;
-        }
-        
-        .wallet-status {
-            background-color: rgba(0,0,0,0.1);
-            padding: 0.5rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            font-family: monospace;
-        }
-        
-        .payment-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            border: none;
-            font-size: 1rem;
-        }
-        
-        .btn:active {
-            transform: translateY(2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: var(--text-light);
-        }
-        
-        .btn-primary:hover:not(:disabled) {
-            background-color: var(--primary-hover);
-        }
-        
-        .btn-accent {
-            background-color: var(--accent-color);
-            color: var(--text-light);
-        }
-        
-        .btn-accent:hover:not(:disabled) {
-            background-color: #8833ee;
-        }
-        
-        .btn-outline {
-            background-color: transparent;
-            color: var(--text-dark);
-            border: 1px solid #ccc;
-        }
-        
-        .btn-outline:hover:not(:disabled) {
-            background-color: rgba(0,0,0,0.05);
-        }
-        
-        .loading-spinner {
-            border: 4px solid rgba(0,0,0,0.1);
-            border-left-color: var(--primary-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 10px auto;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* 游戏选择器样式 */
-        .game-selector {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            margin-top: 60px;
-        }
-        
-        .game-selector-title {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            color: var(--text-dark);
-            text-align: center;
-        }
-        
-        .game-options {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .game-option {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-            width: 250px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .game-option:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-        }
-        
-        .game-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: var(--accent-color);
-        }
-        
-        .game-name {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-dark);
-        }
-        
-        .game-description {
-            color: #666;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-        
-        /* 游戏容器样式 */
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100vh;
-            padding-top: 60px;
-        }
-        
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            max-width: 800px;
-            margin-bottom: 1rem;
-            padding: 0 1rem;
-        }
-        
-        .back-button {
-            padding: 0.5rem 1rem;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        
-        .back-button:hover {
-            background-color: #8833ee;
-        }
-        
-        .game-canvas-container {
+        /* 容器样式 */
+        .container {
             position: relative;
             width: 100%;
             max-width: 800px;
-            height: 600px;
             margin: 0 auto;
+            padding: 20px;
+            text-align: center;
         }
         
-        canvas {
-            display: block;
-            background-color: black;
-            width: 100%;
-            height: 100%;
+        /* 钱包连接部分 */
+        .wallet-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
         
-        /* 消息通知样式 */
+        .wallet-status {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        
+        /* 按钮样式 */
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        /* 游戏区域样式 */
+        .game-section {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .game-canvas {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #7cbf6d;
+            max-width: 100%;
+        }
+        
+        .game-instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .game-win {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        /* 消息提示 */
         .message-container {
             position: fixed;
-            top: 70px;
-            right: 20px;
-            z-index: 10000;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            text-align: center;
         }
         
         .message {
-            padding: 10px 15px;
+            padding: 12px 24px;
             margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            color: white;
-            font-size: 0.9rem;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: inline-block;
+            max-width: 90vw;
             opacity: 0;
-            transform: translateX(50px);
+            transform: translateY(-20px);
             transition: opacity 0.3s, transform 0.3s;
-            max-width: 300px;
         }
         
         .message.show {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateY(0);
         }
         
-        .message-success {
-            background-color: var(--primary-color);
+        .message.success {
+            background-color: #4CAF50;
+            color: white;
         }
         
-        .message-error {
-            background-color: var(--danger-color);
+        .message.error {
+            background-color: #f44336;
+            color: white;
         }
         
-        .message-warning {
-            background-color: var(--warning-color);
-            color: var(--text-dark);
+        .message.warning {
+            background-color: #ff9800;
+            color: white;
         }
         
-        .message-info {
+        .message.info {
             background-color: #2196F3;
+            color: white;
         }
         
-        /* 通用类 */
+        /* 调试区域 */
+        .debug-section {
+            margin-top: 20px;
+            text-align: left;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #debugText {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow: auto;
+            max-height: 150px;
+            font-size: 12px;
+        }
+        
         .hidden {
             display: none !important;
-        }
-        
-        /* 响应式调整 */
-        @media (max-width: 768px) {
-            .game-options {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .game-option {
-                width: 100%;
-                max-width: 280px;
-            }
-            
-            .game-canvas-container {
-                height: 450px;
-            }
-            
-            .payment-box {
-                padding: 1.5rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .banner {
-                font-size: 0.8rem;
-                padding: 8px 30px 8px 8px;
-            }
-            
-            .game-selector-title {
-                font-size: 1.5rem;
-            }
-            
-            .game-canvas-container {
-                height: 350px;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- 顶部横幅 -->
-    <div id="officialBanner" class="banner">
-        <div class="banner-info">官方只接受Solana链上的USDC代币支付</div>
-        <div class="banner-info">官方钱包地址: <span class="banner-wallet">AXf8wCy3WawqZZtZh4Jix2PRDJdDu4xdymR6HuD1ot8H</span>
-            <button class="copy-btn" id="copyWalletBtn">复制</button>
-        </div>
-    </div>
-    <button id="bannerToggle" class="banner-toggle">▲</button>
-    
-    <!-- 支付叠层 -->
-    <div id="paymentOverlay" class="overlay">
-        <div class="payment-box">
-            <h2 class="payment-title">请付费开始游戏</h2>
-            <p class="payment-info">请使用Phantom钱包支付1枚Solana链上的USDC代币以开始游戏。所有付费将自动处理。</p>
+    <div class="container">
+        <h1>官方游戏平台</h1>
+        
+        <!-- 钱包连接区域 -->
+        <div class="wallet-section" id="walletSection">
+            <h2>连接钱包开始游戏</h2>
+            <p>官方收款地址: <span id="officialWallet">AXf8wCy3WawqZZtZh4Jix2PRDJdDu4xdymR6HuD1ot8H</span></p>
             
-            <div id="walletStatus" class="wallet-status">未连接钱包</div>
+            <div class="wallet-status" id="walletStatus">未连接钱包</div>
             
-            <div id="loadingSpinner" class="loading-spinner hidden"></div>
+            <button id="connectBtn">连接Phantom钱包</button>
+            <button id="payBtn" disabled>支付1 USDC开始游戏</button>
+        </div>
+        
+        <!-- 游戏区域 -->
+        <div class="game-section" id="gameSection">
+            <h2>弹珠游戏</h2>
             
-            <div class="payment-actions">
-                <button id="connectWalletBtn" class="btn btn-accent">连接钱包</button>
-                <button id="payButton" class="btn btn-primary" disabled>支付1 USDC</button>
-                <button id="manualVerifyBtn" class="btn btn-outline">我已完成付款(手动验证)</button>
+            <div class="game-instructions">
+                <p><strong>游戏说明:</strong> 拖动弹珠并释放以发射，将弹珠射入黑色的洞中即可过关。</p>
+                <p><strong>操作方法:</strong> 鼠标点击或触摸弹珠，拖动后释放发射。</p>
             </div>
-        </div>
-    </div>
-    
-    <!-- 消息通知容器 -->
-    <div id="messageContainer" class="message-container"></div>
-    
-    <!-- 游戏选择器 -->
-    <div id="gameSelectorContainer" class="game-selector hidden">
-        <h1 class="game-selector-title">请选择游戏</h1>
-        <div class="game-options">
-            <div id="planeGameOption" class="game-option">
-                <div class="game-icon">✈️</div>
-                <h2 class="game-name">飞机大战</h2>
-                <p class="game-description">控制飞机躲避敌人，尽可能获得高分</p>
+            
+            <div style="position: relative;">
+                <canvas id="gameCanvas" class="game-canvas" width="500" height="500"></canvas>
+                <div class="game-win" id="winText">恭喜！您赢了！</div>
             </div>
-            <div id="marbleGameOption" class="game-option">
-                <div class="game-icon">🔮</div>
-                <h2 class="game-name">弹珠游戏</h2>
-                <p class="game-description">控制弹珠通过各种关卡障碍</p>
-            </div>
+            
+            <button id="exitGameBtn">退出游戏</button>
+        </div>
+        
+        <!-- 消息提示区域 -->
+        <div class="message-container" id="messageContainer"></div>
+        
+        <!-- 调试区域 -->
+        <div class="debug-section" id="debugSection">
+            <h3>调试信息</h3>
+            <pre id="debugText"></pre>
+            <button id="clearDebugBtn" onclick="document.getElementById('debugText').textContent = ''">清除日志</button>
         </div>
     </div>
-    
-    <!-- 飞机游戏容器 -->
-    <div id="planeGameContainer" class="game-container hidden">
-        <div class="game-header">
-            <button id="backToSelector" class="back-button">返回选择</button>
-        </div>
-        <div class="game-canvas-container">
-            <canvas id="planeGameCanvas"></canvas>
-        </div>
-    </div>
-    
-    <!-- 弹珠游戏容器 -->
-    <div id="marbleGameContainer" class="game-container hidden">
-        <div class="game-header">
-            <button id="backToSelectorMarble" class="back-button">返回选择</button>
-        </div>
-        <div class="game-canvas-container">
-            <canvas id="marbleGameCanvas"></canvas>
-        </div>
-        <div id="winText" class="hidden">胜利!</div>
-    </div>
-    
+
     <script>
-        // 辅助工具对象
+        // ===== 辅助功能 =====
         const Helpers = {
-            // 显示消息通知
-            showMessage: function(message, type = 'info', duration = 3000) {
-                console.log(`显示消息: ${message}, 类型: ${type}`);
+            // 显示消息
+            showMessage: function(text, type = 'info', duration = 3000) {
                 const container = document.getElementById('messageContainer');
-                const msgElement = document.createElement('div');
-                msgElement.className = `message message-${type}`;
-                msgElement.innerHTML = message;
+                const message = document.createElement('div');
+                message.className = `message ${type}`;
+                message.innerHTML = text;
                 
-                container.appendChild(msgElement);
+                container.appendChild(message);
                 
-                // 短延迟后显示（允许CSS过渡）
+                // 使动画有效
                 setTimeout(() => {
-                    msgElement.classList.add('show');
+                    message.classList.add('show');
                 }, 10);
                 
-                // 如果设置了持续时间，则在之后删除消息
+                // 自动移除消息
                 if (duration > 0) {
                     setTimeout(() => {
-                        msgElement.classList.remove('show');
-                        
-                        // 等待过渡完成后移除元素
+                        message.classList.remove('show');
                         setTimeout(() => {
-                            container.removeChild(msgElement);
+                            container.removeChild(message);
                         }, 300);
                     }, duration);
                 }
                 
-                return msgElement;
+                return message;
             },
             
-            // 复制文本到剪贴板
-            copyToClipboard: function(text) {
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        this.showMessage('已复制到剪贴板', 'success');
-                    })
-                    .catch(err => {
-                        console.error('复制失败: ', err);
-                        this.showMessage('复制失败，请手动复制', 'error');
-                    });
-            },
-            
-            // 生成唯一ID
-            generateUniqueId: function() {
-                return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            // 调试日志
+            log: function(message) {
+                console.log(message);
+                const debugText = document.getElementById('debugText');
+                debugText.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+                debugText.scrollTop = debugText.scrollHeight;
             }
         };
-        
-        // Solana钱包管理器
+
+        // ===== 钱包管理 =====
         const WalletManager = {
-            walletConnected: false,
             publicKey: null,
-            connection: null,
-            phantom: null,
             
-            // RPC节点列表
-            rpcEndpoints: [
-                'https://api.mainnet-beta.solana.com',
-                'https://solana-api.projectserum.com',
-                'https://rpc.ankr.com/solana'
-            ],
-            
-            // USDC Token Mint地址（Solana主网）
-            usdcMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-            
-            // 支付金额（1 USDC = 1,000,000个最小单位）
-            paymentAmount: 1000000,
-            
-            // 收款地址 - 替换为您的实际Solana钱包地址
-            payToAddress: 'AXf8wCy3WawqZZtZh4Jix2PRDJdDu4xdymR6HuD1ot8H',
-            
-            // 简化的初始化方法
-            async initialize() {
-                console.log("初始化钱包管理器...");
+            // 检查是否安装了Phantom钱包
+            checkPhantomWallet: function() {
+                Helpers.log('检查Phantom钱包...');
                 
-                // 连接RPC
-                await this.connectToRPC();
-                
-                // 初始化钱包连接按钮
-                const connectWalletBtn = document.getElementById('connectWalletBtn');
-                const payButton = document.getElementById('payButton');
-                const manualVerifyBtn = document.getElementById('manualVerifyBtn');
-                
-                // 检查Phantom钱包是否可用
-                if (window.solana && window.solana.isPhantom) {
-                    console.log("检测到Phantom钱包!");
-                    this.phantom = window.solana;
-                    connectWalletBtn.disabled = false;
-                    
-                    // 自动恢复已连接状态
-                    if (this.phantom.isConnected) {
-                        this.walletConnected = true;
-                        this.publicKey = this.phantom.publicKey;
-                        connectWalletBtn.textContent = '钱包已连接';
-                        connectWalletBtn.disabled = true;
-                        payButton.disabled = false;
-                        
-                        document.getElementById('walletStatus').textContent = 
-                            `已连接: ${this.publicKey.toString().slice(0,4)}...${this.publicKey.toString().slice(-4)}`;
-                        console.log("已自动连接到钱包:", this.publicKey.toString());
+                if (window.solana) {
+                    if (window.solana.isPhantom) {
+                        Helpers.log('✅ 已检测到Phantom钱包');
+                        return true;
+                    } else {
+                        Helpers.log('❌ 检测到solana对象，但不是Phantom钱包');
                     }
                 } else {
-                    console.log("未检测到Phantom钱包");
-                    connectWalletBtn.textContent = '请安装Phantom钱包';
-                    connectWalletBtn.disabled = true;
-                    Helpers.showMessage('请安装Phantom钱包以继续<br><a href="https://phantom.app/" target="_blank" style="color:white;text-decoration:underline;">获取Phantom</a>', 'warning', 0);
+                    Helpers.log('❌ 未检测到solana对象');
                 }
                 
-                // 使用内联函数绑定事件，避免this指向问题
-                connectWalletBtn.onclick = async () => {
-                    console.log("点击连接钱包按钮");
-                    try {
-                        await this.connectWallet();
-                    } catch (err) {
-                        console.error("连接钱包时出错:", err);
-                        Helpers.showMessage('连接钱包失败: ' + err.message, 'error');
-                    }
-                };
-                
-                payButton.onclick = async () => {
-                    try {
-                        await this.makePayment();
-                    } catch (err) {
-                        console.error("支付时出错:", err);
-                        Helpers.showMessage('支付失败: ' + err.message, 'error');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                    }
-                };
-                
-                manualVerifyBtn.onclick = async () => {
-                    try {
-                        await this.verifyPayment();
-                    } catch (err) {
-                        console.error("验证时出错:", err);
-                        Helpers.showMessage('验证失败: ' + err.message, 'error');
-                    }
-                };
-                
-                console.log("钱包管理器初始化完成");
+                document.getElementById('walletStatus').textContent = '请安装Phantom钱包后继续';
+                document.getElementById('connectBtn').textContent = '获取Phantom钱包';
+                document.getElementById('connectBtn').onclick = () => window.open('https://phantom.app/', '_blank');
+                return false;
             },
             
-            // 连接到RPC节点
-            async connectToRPC() {
-                console.log("尝试连接到RPC节点...");
-                // 尝试所有RPC节点直到找到一个工作的
-                for (const endpoint of this.rpcEndpoints) {
-                    try {
-                        console.log(`尝试连接到 ${endpoint}...`);
-                        const tempConnection = new solanaWeb3.Connection(endpoint, 'confirmed');
-                        // 测试连接是否有效
-                        await tempConnection.getLatestBlockhash()
-                            .then(() => {
-                                this.connection = tempConnection;
-                                console.log('已连接到Solana节点:', endpoint);
-                                return true;
-                            })
-                            .catch(err => {
-                                console.warn(`无法连接到 ${endpoint}:`, err);
-                                return false;
-                            });
-                        
-                        if (this.connection) break; // 如果找到可用连接，跳出循环
-                    } catch (error) {
-                        console.warn(`尝试连接到 ${endpoint} 时出错:`, error);
-                    }
-                }
+            // 连接到Phantom钱包
+            connectWallet: async function() {
+                Helpers.log('尝试连接钱包...');
                 
-                if (!this.connection) {
-                    Helpers.showMessage('无法连接到Solana网络，请稍后再试', 'error');
-                }
-            },
-            
-            // 简化的钱包连接方法
-            async connectWallet() {
-                console.log("尝试连接钱包...");
-                
-                if (!window.solana || !window.solana.isPhantom) {
-                    console.error("Phantom钱包未安装");
-                    Helpers.showMessage('请安装Phantom钱包后再尝试', 'error');
-                    return;
-                }
+                if (!this.checkPhantomWallet()) return;
                 
                 try {
-                    // 使用直接的连接方法
-                    const resp = await window.solana.connect();
-                    console.log("钱包连接成功:", resp);
+                    const connectBtn = document.getElementById('connectBtn');
+                    connectBtn.disabled = true;
+                    connectBtn.textContent = '连接中...';
                     
-                    this.walletConnected = true;
-                    this.publicKey = resp.publicKey;
-                    this.phantom = window.solana;
+                    // 请求连接
+                    const resp = await window.solana.connect();
+                    this.publicKey = resp.publicKey.toString();
+                    
+                    Helpers.log(`✅ 钱包连接成功: ${this.publicKey.substring(0, 4)}...${this.publicKey.substring(this.publicKey.length - 4)}`);
                     
                     // 更新UI
-                    const connectBtn = document.getElementById('connectWalletBtn');
-                    connectBtn.textContent = '钱包已连接';
-                    connectBtn.disabled = true;
-                    
-                    document.getElementById('payButton').disabled = false;
-                    document.getElementById('walletStatus').textContent = 
-                        `已连接: ${this.publicKey.toString().slice(0,4)}...${this.publicKey.toString().slice(-4)}`;
+                    document.getElementById('walletStatus').textContent = `已连接: ${this.publicKey.substring(0, 4)}...${this.publicKey.substring(this.publicKey.length - 4)}`;
+                    connectBtn.textContent = '已连接';
+                    document.getElementById('payBtn').disabled = false;
                     
                     Helpers.showMessage('钱包连接成功!', 'success');
                 } catch (err) {
-                    console.error("连接钱包失败:", err);
+                    Helpers.log(`❌ 钱包连接错误: ${err.message}`);
+                    document.getElementById('walletStatus').textContent = `连接失败: ${err.message}`;
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = '重试连接';
                     Helpers.showMessage(`连接钱包失败: ${err.message}`, 'error');
                 }
             },
             
-            // 进行USDC支付
-            async makePayment() {
-                if (!this.walletConnected) {
+            // 发送USDC (简化版，实际生产中需使用完整的Solana交易)
+            sendPayment: async function() {
+                Helpers.log('准备支付...');
+                
+                if (!this.publicKey) {
+                    Helpers.log('❌ 未连接钱包');
                     Helpers.showMessage('请先连接钱包', 'warning');
                     return;
                 }
                 
-                if (!this.connection) {
-                    await this.connectToRPC();
-                    if (!this.connection) {
-                        Helpers.showMessage('无法连接到Solana网络，请稍后再试', 'error');
-                        return;
-                    }
-                }
-                
                 try {
-                    Helpers.showMessage('正在处理付款...', 'info');
-                    document.getElementById('loadingSpinner').classList.remove('hidden');
+                    Helpers.log('模拟支付过程...');
+                    Helpers.showMessage('正在处理支付...', 'info');
                     
-                    // 获取USDC代币账户
-                    const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-                        this.publicKey,
-                        { mint: new solanaWeb3.PublicKey(this.usdcMint) }
-                    );
+                    // 在实际应用中，这里应该构建并发送一个Solana交易
+                    // 简化版本中，我们直接模拟支付成功
                     
-                    // 检查是否有USDC账户
-                    if (tokenAccounts.value.length === 0) {
-                        Helpers.showMessage('您的钱包中没有USDC代币账户', 'error');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                        return;
-                    }
+                    // 模拟网络延迟
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                     
-                    // 获取用户的USDC账户
-                    const usdcAccount = tokenAccounts.value[0].pubkey;
-                    const balance = tokenAccounts.value[0].account.data.parsed.info.tokenAmount.uiAmount;
+                    // 支付成功后显示游戏
+                    Helpers.log('✅ 支付成功');
+                    Helpers.showMessage('支付成功！游戏开始！', 'success');
                     
-                    // 检查余额
-                    if (balance < 1) {
-                        Helpers.showMessage(`余额不足。需要1 USDC，但您只有 ${balance} USDC`, 'error');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                        return;
-                    }
+                    // 切换到游戏界面
+                    document.getElementById('walletSection').style.display = 'none';
+                    document.getElementById('gameSection').style.display = 'block';
                     
-                    // 构建收款地址
-                    const recipient = new solanaWeb3.PublicKey(this.payToAddress);
-                    
-                    // 查找或创建接收者的ATA（关联代币账户）
-                    const recipientATAs = await this.connection.getParsedTokenAccountsByOwner(
-                        recipient,
-                        { mint: new solanaWeb3.PublicKey(this.usdcMint) }
-                    );
-                    
-                    let recipientTokenAccount;
-                    
-                    if (recipientATAs.value.length > 0) {
-                        // 使用现有的ATA
-                        recipientTokenAccount = recipientATAs.value[0].pubkey;
-                    } else {
-                        // 从安全考虑，如果收款人没有USDC账户，我们取消交易
-                        // 实际应用中可能需要创建ATA
-                        Helpers.showMessage('收款钱包没有USDC账户，请联系管理员', 'error');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                        return;
-                    }
-                    
-                    // 创建交易指令
-                    const transferInstruction = splToken.Token.createTransferInstruction(
-                        splToken.TOKEN_PROGRAM_ID,
-                        usdcAccount,
-                        recipientTokenAccount,
-                        this.publicKey,
-                        [],
-                        this.paymentAmount
-                    );
-                    
-                    const transaction = new solanaWeb3.Transaction().add(transferInstruction);
-                    
-                    // 设置最近的区块哈希和付款人
-                    const { blockhash } = await this.connection.getRecentBlockhash();
-                    transaction.recentBlockhash = blockhash;
-                    transaction.feePayer = this.publicKey;
-                    
-                    // 发送交易
-                    const signed = await this.phantom.signTransaction(transaction);
-                    const signature = await this.connection.sendRawTransaction(signed.serialize());
-                    
-                    console.log("交易发送成功:", signature);
-                    
-                    // 等待交易确认
-                    Helpers.showMessage('交易已发送，等待确认...', 'info');
-                    
-                    const result = await this.connection.confirmTransaction(signature, 'confirmed');
-                    
-                    if (result.value.err) {
-                        Helpers.showMessage('交易失败: ' + result.value.err, 'error');
-                        document.getElementById('loadingSpinner').classList.add('hidden');
-                        return;
-                    }
-                    
-                    console.log("交易已确认:", result);
-                    document.getElementById('loadingSpinner').classList.add('hidden');
-                    
-                    // 支付成功，隐藏支付叠层并显示游戏选择器
-                    Helpers.showMessage('支付成功! 游戏已解锁', 'success');
-                    document.getElementById('paymentOverlay').classList.add('hidden');
-                    document.getElementById('gameSelectorContainer').classList.remove('hidden');
-                    
-                } catch (error) {
-                    console.error("支付过程中发生错误:", error);
-                    Helpers.showMessage('支付失败: ' + error.message, 'error');
-                    document.getElementById('loadingSpinner').classList.add('hidden');
+                    // 初始化并开始游戏
+                    MarbleGame.initialize();
+                } catch (err) {
+                    Helpers.log(`❌ 支付错误: ${err.message}`);
+                    Helpers.showMessage(`支付失败: ${err.message}`, 'error');
                 }
-            },
-            
-            // 手动验证支付（备用方案）
-            async verifyPayment() {
-                // 这里我们简单地显示游戏选择器，相当于绕过了支付验证
-                // 实际应用中应该有真正的验证机制
-                Helpers.showMessage('已验证支付，游戏已解锁', 'success');
-                document.getElementById('paymentOverlay').classList.add('hidden');
-                document.getElementById('gameSelectorContainer').classList.remove('hidden');
             }
         };
-        
-        // 弹珠游戏类
-        class MarbleGame {
-            constructor() {
-                this.canvas = document.getElementById('marbleGameCanvas');
+
+        // ===== 弹珠游戏 =====
+        const MarbleGame = {
+            canvas: null,
+            ctx: null,
+            marble: null,
+            obstacles: [],
+            holes: [],
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            currentLevel: 1,
+            highScore: 0,
+            gameLoop: null,
+            lastTime: 0,
+            winText: null,
+            
+            // 初始化游戏
+            initialize: function() {
+                Helpers.log('初始化弹珠游戏...');
+                
+                // 获取游戏元素
+                this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
-                this.gameActive = false;
                 this.winText = document.getElementById('winText');
                 
-                // 游戏状态
+                // 设置游戏状态
                 this.marble = {
                     x: 0, y: 0,
                     radius: 15,
@@ -822,273 +381,211 @@
                     launched: false
                 };
                 
-                this.holes = []; // 目标洞
-                this.obstacles = []; // 障碍物
-                this.currentLevel = 1;
-                this.dragStart = { x: 0, y: 0 };
-                this.isDragging = false;
+                // 加载之前的最高分
+                const storedScore = localStorage.getItem('marbleGameHighScore');
+                this.highScore = storedScore ? parseInt(storedScore) : 0;
                 
-                // 绑定事件处理器
-                this.onMouseDown = this.onMouseDown.bind(this);
-                this.onMouseMove = this.onMouseMove.bind(this);
-                this.onMouseUp = this.onMouseUp.bind(this);
-                this.onTouchStart = this.onTouchStart.bind(this);
-                this.onTouchMove = this.onTouchMove.bind(this);
-                this.onTouchEnd = this.onTouchEnd.bind(this);
-            }
-            
-            // 初始化游戏
-            start() {
-                this.gameActive = true;
-                
-                // 设置画布尺寸
-                this.canvas.width = this.canvas.parentElement.clientWidth;
-                this.canvas.height = this.canvas.parentElement.clientHeight;
-                
-                // 初始化第一关
+                // 设置初始关卡
                 this.setupLevel(this.currentLevel);
                 
                 // 添加事件监听器
-                this.canvas.addEventListener('mousedown', this.onMouseDown);
-                this.canvas.addEventListener('mousemove', this.onMouseMove);
-                this.canvas.addEventListener('mouseup', this.onMouseUp);
-                this.canvas.addEventListener('touchstart', this.onTouchStart);
-                this.canvas.addEventListener('touchmove', this.onTouchMove);
-                this.canvas.addEventListener('touchend', this.onTouchEnd);
+                this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+                this.canvas.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: false });
+                this.canvas.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
+                this.canvas.addEventListener('touchend', this.onTouchEnd.bind(this));
                 
                 // 开始游戏循环
                 this.lastTime = performance.now();
-                this.gameLoop();
-            }
-            
-            // 停止游戏
-            stop() {
-                this.gameActive = false;
+                this.gameLoop = requestAnimationFrame(this.update.bind(this));
                 
-                // 移除事件监听器
-                this.canvas.removeEventListener('mousedown', this.onMouseDown);
-                this.canvas.removeEventListener('mousemove', this.onMouseMove);
-                this.canvas.removeEventListener('mouseup', this.onMouseUp);
-                this.canvas.removeEventListener('touchstart', this.onTouchStart);
-                this.canvas.removeEventListener('touchmove', this.onTouchMove);
-                this.canvas.removeEventListener('touchend', this.onTouchEnd);
-            }
+                Helpers.log('弹珠游戏初始化完成');
+            },
             
             // 设置关卡
-            setupLevel(level) {
-                // 重置弹珠状态
-                this.marble.launched = false;
+            setupLevel: function(level) {
+                Helpers.log(`设置关卡 ${level}`);
+                
+                // 重置游戏状态
+                this.obstacles = [];
+                this.holes = [];
                 this.marble.velocity = { x: 0, y: 0 };
-                this.isDragging = false;
+                this.marble.launched = false;
                 this.winText.style.display = 'none';
                 
-                // 清空障碍物和目标
-                this.holes = [];
-                this.obstacles = [];
-                
-                // 根据关卡设置游戏元素
-                switch (level) {
+                switch(level) {
                     case 1:
-                        this.marble.x = 50;
-                        this.marble.y = this.canvas.height - 50;
-                        
-                        // 添加目标洞
-                        this.holes.push({
-                            x: this.canvas.width - 50,
-                            y: 50,
-                            radius: 20
-                        });
+                        // 第一关 - 简单布局
+                        this.marble.x = 250;
+                        this.marble.y = 400;
                         
                         // 添加障碍物
-                        this.obstacles.push({
-                            x: this.canvas.width / 2 - 100,
-                            y: this.canvas.height / 2,
-                            width: 200,
-                            height: 20
-                        });
+                        this.obstacles.push({ x: 100, y: 200, width: 300, height: 30 });
+                        
+                        // 添加目标洞
+                        this.holes.push({ x: 250, y: 100, radius: 20 });
                         break;
                         
                     case 2:
-                        this.marble.x = 50;
-                        this.marble.y = 50;
-                        
-                        // 添加目标洞
-                        this.holes.push({
-                            x: this.canvas.width - 50,
-                            y: this.canvas.height - 50,
-                            radius: 20
-                        });
+                        // 第二关 - 中等难度
+                        this.marble.x = 100;
+                        this.marble.y = 400;
                         
                         // 添加障碍物
-                        this.obstacles.push({
-                            x: 0,
-                            y: this.canvas.height / 2,
-                            width: this.canvas.width - 100,
-                            height: 20
-                        });
+                        this.obstacles.push({ x: 0, y: 300, width: 200, height: 30 });
+                        this.obstacles.push({ x: 300, y: 200, width: 200, height: 30 });
                         
-                        this.obstacles.push({
-                            x: 150,
-                            y: this.canvas.height / 4,
-                            width: this.canvas.width - 150,
-                            height: 20
-                        });
+                        // 添加目标洞
+                        this.holes.push({ x: 400, y: 100, radius: 20 });
                         break;
                         
                     case 3:
-                        this.marble.x = this.canvas.width / 2;
-                        this.marble.y = this.canvas.height - 50;
-                        
-                        // 添加目标洞
-                        this.holes.push({
-                            x: this.canvas.width / 2,
-                            y: 50,
-                            radius: 20
-                        });
+                        // 第三关 - 困难
+                        this.marble.x = 250;
+                        this.marble.y = 450;
                         
                         // 添加障碍物
-                        this.obstacles.push({
-                            x: this.canvas.width / 4,
-                            y: this.canvas.height / 2,
-                            width: 20,
-                            height: this.canvas.height / 2
-                        });
+                        this.obstacles.push({ x: 100, y: 350, width: 300, height: 30 });
+                        this.obstacles.push({ x: 0, y: 250, width: 200, height: 30 });
+                        this.obstacles.push({ x: 300, y: 150, width: 200, height: 30 });
                         
-                        this.obstacles.push({
-                            x: this.canvas.width * 3/4,
-                            y: 0,
-                            width: 20,
-                            height: this.canvas.height / 2
-                        });
-                        
-                        this.obstacles.push({
-                            x: 0,
-                            y: this.canvas.height / 4,
-                            width: this.canvas.width / 2,
-                            height: 20
-                        });
+                        // 添加目标洞
+                        this.holes.push({ x: 250, y: 50, radius: 20 });
                         break;
                 }
-            }
-            
-            // 游戏循环
-            gameLoop(timestamp) {
-                if (!this.gameActive) return;
                 
-                const deltaTime = timestamp - this.lastTime;
-                this.lastTime = timestamp;
+                // 设置拖动起点
+                this.isDragging = true;
+                this.dragStart.x = this.marble.x;
+                this.dragStart.y = this.marble.y;
+            },
+            
+            // 发射弹珠
+            launch: function() {
+                // 计算发射方向
+                const dx = this.marble.x - this.dragStart.x;
+                const dy = this.marble.y - this.dragStart.y;
+                
+                // 设置初始速度
+                this.marble.velocity.x = dx * 0.1;
+                this.marble.velocity.y = dy * 0.1;
+                
+                // 标记为已发射
+                this.marble.launched = true;
+                this.isDragging = false;
+            },
+            
+            // 游戏更新循环
+            update: function(time) {
+                // 计算时间增量
+                const deltaTime = time - this.lastTime;
+                this.lastTime = time;
                 
                 // 更新游戏状态
-                this.update(deltaTime);
+                this.updatePhysics(deltaTime);
                 
                 // 渲染游戏
                 this.render();
                 
-                // 继续循环
-                requestAnimationFrame(this.gameLoop.bind(this));
-            }
+                // 继续游戏循环
+                this.gameLoop = requestAnimationFrame(this.update.bind(this));
+            },
             
-            // 更新游戏状态
-            update(deltaTime) {
-                if (!this.marble.launched) return;
-                
-                // 应用重力
-                this.marble.velocity.y += 0.2;
-                
-                // 更新弹珠位置
-                this.marble.x += this.marble.velocity.x;
-                this.marble.y += this.marble.velocity.y;
-                
-                // 检查墙壁碰撞
-                if (this.marble.x - this.marble.radius < 0 || 
-                    this.marble.x + this.marble.radius > this.canvas.width) {
-                    this.marble.velocity.x *= -0.8; // 反弹并减少能量
+            // 物理更新
+            updatePhysics: function(deltaTime) {
+                // 如果弹珠已发射，更新位置
+                if (this.marble.launched) {
+                    // 应用速度
+                    this.marble.x += this.marble.velocity.x;
+                    this.marble.y += this.marble.velocity.y;
                     
-                    // 修正位置防止卡在墙内
+                    // 添加重力
+                    this.marble.velocity.y += 0.05;
+                    
+                    // 检查边界碰撞
                     if (this.marble.x - this.marble.radius < 0) {
                         this.marble.x = this.marble.radius;
+                        this.marble.velocity.x *= -0.8;
                     }
                     if (this.marble.x + this.marble.radius > this.canvas.width) {
                         this.marble.x = this.canvas.width - this.marble.radius;
+                        this.marble.velocity.x *= -0.8;
                     }
-                }
-                
-                if (this.marble.y - this.marble.radius < 0 || 
-                    this.marble.y + this.marble.radius > this.canvas.height) {
-                    this.marble.velocity.y *= -0.8; // 反弹并减少能量
-                    
-                    // 修正位置防止卡在墙内
                     if (this.marble.y - this.marble.radius < 0) {
                         this.marble.y = this.marble.radius;
+                        this.marble.velocity.y *= -0.8;
                     }
                     if (this.marble.y + this.marble.radius > this.canvas.height) {
                         this.marble.y = this.canvas.height - this.marble.radius;
+                        this.marble.velocity.y *= -0.8;
                     }
-                }
-                
-                // 检查障碍物碰撞
-                for (const obstacle of this.obstacles) {
-                    // 计算弹珠与矩形的最近点
-                    const closestX = Math.max(obstacle.x, Math.min(this.marble.x, obstacle.x + obstacle.width));
-                    const closestY = Math.max(obstacle.y, Math.min(this.marble.y, obstacle.y + obstacle.height));
                     
-                    // 计算距离
-                    const distanceX = this.marble.x - closestX;
-                    const distanceY = this.marble.y - closestY;
-                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-                    
-                    if (distance < this.marble.radius) {
-                        // 碰撞响应
-                        const normalX = distanceX / distance;
-                        const normalY = distanceY / distance;
+                    // 检查障碍物碰撞
+                    for (const obstacle of this.obstacles) {
+                        // 确定最近点
+                        const closestX = Math.max(obstacle.x, Math.min(this.marble.x, obstacle.x + obstacle.width));
+                        const closestY = Math.max(obstacle.y, Math.min(this.marble.y, obstacle.y + obstacle.height));
                         
-                        // 计算速度在法线方向的分量
-                        const dotProduct = this.marble.velocity.x * normalX + this.marble.velocity.y * normalY;
+                        // 计算距离
+                        const distanceX = this.marble.x - closestX;
+                        const distanceY = this.marble.y - closestY;
+                        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
                         
-                        // 反弹速度
-                        this.marble.velocity.x -= 2 * dotProduct * normalX * 0.8;
-                        this.marble.velocity.y -= 2 * dotProduct * normalY * 0.8;
-                        
-                        // 轻微移动弹珠以避免卡在障碍物中
-                        this.marble.x += normalX * (this.marble.radius - distance + 1);
-                        this.marble.y += normalY * (this.marble.radius - distance + 1);
+                        // 如果有碰撞
+                        if (distance < this.marble.radius) {
+                            // 计算法线向量
+                            const nx = distanceX / distance;
+                            const ny = distanceY / distance;
+                            
+                            // 反弹
+                            const dot = this.marble.velocity.x * nx + this.marble.velocity.y * ny;
+                            this.marble.velocity.x = this.marble.velocity.x - 2 * dot * nx;
+                            this.marble.velocity.y = this.marble.velocity.y - 2 * dot * ny;
+                            
+                            // 应用阻尼
+                            this.marble.velocity.x *= 0.8;
+                            this.marble.velocity.y *= 0.8;
+                            
+                            // 防止卡在障碍物中
+                            const penetration = this.marble.radius - distance;
+                            this.marble.x += nx * penetration;
+                            this.marble.y += ny * penetration;
+                        }
                     }
-                }
-                
-                // 检查是否进洞
-                for (const hole of this.holes) {
-                    const dx = this.marble.x - hole.x;
-                    const dy = this.marble.y - hole.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    if (distance < hole.radius) {
-                        // 玩家完成本关
-                        this.completeLevel();
-                        break;
+                    // 检查是否进洞
+                    for (const hole of this.holes) {
+                        const dx = this.marble.x - hole.x;
+                        const dy = this.marble.y - hole.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < hole.radius) {
+                            // 玩家完成本关
+                            this.completeLevel();
+                            break;
+                        }
                     }
-                }
-                
-                // 逐渐减少速度（模拟摩擦）
-                this.marble.velocity.x *= 0.99;
-                this.marble.velocity.y *= 0.99;
-                
-                // 如果速度非常小，停止移动
-                if (Math.abs(this.marble.velocity.x) < 0.1 && Math.abs(this.marble.velocity.y) < 0.1 &&
-                    this.marble.launched) {
-                    this.marble.velocity.x = 0;
-                    this.marble.velocity.y = 0;
                     
-                    // 允许重新发射
-                    if (this.marble.launched) {
+                    // 逐渐减少速度（模拟摩擦）
+                    this.marble.velocity.x *= 0.99;
+                    this.marble.velocity.y *= 0.99;
+                    
+                    // 如果速度非常小，停止移动
+                    if (Math.abs(this.marble.velocity.x) < 0.1 && Math.abs(this.marble.velocity.y) < 0.1) {
+                        this.marble.velocity.x = 0;
+                        this.marble.velocity.y = 0;
+                        
+                        // 允许重新发射
                         this.isDragging = true;
                         this.dragStart.x = this.marble.x;
                         this.dragStart.y = this.marble.y;
                     }
                 }
-            }
+            },
             
             // 渲染游戏
-            render() {
+            render: function() {
                 // 清除画布
                 this.ctx.fillStyle = '#7cbf6d';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1147,10 +644,10 @@
                 this.ctx.font = '20px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.fillText(`关卡: ${this.currentLevel}/3`, 10, 30);
-            }
+            },
             
             // 完成关卡
-            completeLevel() {
+            completeLevel: function() {
                 // 停止弹珠运动
                 this.marble.velocity = { x: 0, y: 0 };
                 this.marble.launched = false;
@@ -1171,10 +668,10 @@
                         this.setupLevel(this.currentLevel);
                     }, 3000);
                 }
-            }
+            },
             
-            // 事件处理器
-            onMouseDown(e) {
+            // 鼠标按下事件
+            onMouseDown: function(e) {
                 const rect = this.canvas.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
@@ -1189,24 +686,27 @@
                     this.dragStart.x = mouseX;
                     this.dragStart.y = mouseY;
                 }
-            }
+            },
             
-            onMouseMove(e) {
+            // 鼠标移动事件
+            onMouseMove: function(e) {
                 if (!this.isDragging) return;
                 
                 const rect = this.canvas.getBoundingClientRect();
                 this.dragStart.x = e.clientX - rect.left;
                 this.dragStart.y = e.clientY - rect.top;
-            }
+            },
             
-            onMouseUp() {
+            // 鼠标释放事件
+            onMouseUp: function() {
                 if (this.isDragging) {
                     this.launch();
                 }
-            }
+            },
             
-            // 触摸事件处理
-            onTouchStart(e) {
+            // 触摸开始事件
+            onTouchStart: function(e) {
+                e.preventDefault();
                 if (e.touches.length !== 1) return;
                 
                 const rect = this.canvas.getBoundingClientRect();
@@ -1218,6 +718,85 @@
                 const dy = touchY - this.marble.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance <= this.marble.radius * 2) { // 在触摸屏上给予更大的触摸区域
+                if (distance <= this.marble.radius * 2) {
                     this.isDragging = true;
-                    this.drag
+                    this.dragStart.x = touchX;
+                    this.dragStart.y = touchY;
+                }
+            },
+            
+            // 触摸移动事件
+            onTouchMove: function(e) {
+                e.preventDefault();
+                if (!this.isDragging || e.touches.length !== 1) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                this.dragStart.x = e.touches[0].clientX - rect.left;
+                this.dragStart.y = e.touches[0].clientY - rect.top;
+            },
+            
+            // 触摸结束事件
+            onTouchEnd: function() {
+                if (this.isDragging) {
+                    this.launch();
+                }
+            },
+            
+            // 清理游戏资源
+            cleanup: function() {
+                // 停止游戏循环
+                if (this.gameLoop) {
+                    cancelAnimationFrame(this.gameLoop);
+                    this.gameLoop = null;
+                }
+                
+                // 移除事件监听器
+                if (this.canvas) {
+                    this.canvas.removeEventListener('mousedown', this.onMouseDown);
+                    this.canvas.removeEventListener('mousemove', this.onMouseMove);
+                    this.canvas.removeEventListener('mouseup', this.onMouseUp);
+                    this.canvas.removeEventListener('touchstart', this.onTouchStart);
+                    this.canvas.removeEventListener('touchmove', this.onTouchMove);
+                    this.canvas.removeEventListener('touchend', this.onTouchEnd);
+                }
+                
+                Helpers.log('游戏资源已清理');
+            }
+        };
+
+        // ===== 初始化 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            Helpers.log('页面加载完成');
+            
+            // 设置官方钱包地址
+            const officialWalletAddress = 'AXf8wCy3WawqZZtZh4Jix2PRDJdDu4xdymR6HuD1ot8H'; // 替换为您的实际地址
+            document.getElementById('officialWallet').textContent = officialWalletAddress;
+            
+            // 初始化事件监听器
+            document.getElementById('connectBtn').addEventListener('click', function() {
+                WalletManager.connectWallet();
+            });
+            
+            document.getElementById('payBtn').addEventListener('click', function() {
+                WalletManager.sendPayment();
+            });
+            
+            document.getElementById('exitGameBtn').addEventListener('click', function() {
+                // 清理游戏资源
+                MarbleGame.cleanup();
+                
+                // 切换回钱包界面
+                document.getElementById('gameSection').style.display = 'none';
+                document.getElementById('walletSection').style.display = 'block';
+                
+                Helpers.log('已退出游戏');
+            });
+            
+            // 检查钱包状态
+            WalletManager.checkPhantomWallet();
+            
+            Helpers.log('初始化完成');
+        });
+    </script>
+</body>
+</html>
